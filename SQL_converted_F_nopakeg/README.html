@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>&#xac1c;&#xc694;</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="개요">개요</h1>
+<ul>
+<li>이 도구는 Oracle SQL 파일을 읽어 Redshift SQL로 자동 변환하고, 변경 로그 및 수동 확인이 필요한 항목을 식별합니다. 변환 결과는 다음 세 가지 포맷으로 저장됩니다</li>
+</ul>
+<h2 id="기능">기능</h2>
+<h3 id="1-자동-변환">1. 자동 변환</h3>
+<ul>
+<li>transformations.json에 정의된 규칙으로 줄 단위 변환 수행</li>
+<li>기존 들여쓰기 유지</li>
+<li>변경 발생 시 변경 전/후 로그 저장</li>
+</ul>
+<h3 id="2-수동-검토-키워드-탐지">2. 수동 검토 키워드 탐지</h3>
+<ul>
+<li>다음 키워드가 포함된 경우 수동 검토 대상
+<ul>
+<li>[ 'DECLARE', 'EXCEPTION WHEN OTHERS', 'CONNECT BY PRIOR' ]</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-리포트-출력">3. 리포트 출력</h3>
+<ul>
+<li>
+<p>HTML 리포트 (reports/sql_transformation_report.html)</p>
+<ul>
+<li>파일별 SQL 원문, 변환문, diff, 변경 로그 시각화</li>
+<li>검색 및 필터 기능 포함 (변경된 파일/수동 필요 필터)</li>
+</ul>
+</li>
+<li>
+<p>CSV 요약 (reports/sql_transformation_result.csv)</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">번호</th>
+<th style="text-align:center">파일명</th>
+<th style="text-align:center">변경 파일명</th>
+<th style="text-align:center">로그 파일명</th>
+<th style="text-align:center">변경 유무 체크</th>
+<th style="text-align:center">수동 변환 필요</th>
+<th style="text-align:center">비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">1</td>
+<td style="text-align:center">test.sql</td>
+<td style="text-align:center">test_converted.sql</td>
+<td style="text-align:center">test_log.txt</td>
+<td style="text-align:center">O</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<h3 id="4-내부-함수-요약">4. 내부 함수 요약</h3>
+<table>
+<thead>
+<tr>
+<th>함수명</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>apply_transformations</td>
+<td>SQL 한 줄 단위로 변환 수행</td>
+</tr>
+<tr>
+<td>process_sql_file</td>
+<td>단일 SQL 파일 전체 처리</td>
+</tr>
+<tr>
+<td>process_directory</td>
+<td>폴더 내 모든 SQL 파일 처리</td>
+</tr>
+<tr>
+<td>generate_html_report</td>
+<td>HTML 리포트 생성</td>
+</tr>
+<tr>
+<td>save_csv_summary</td>
+<td>CSV 요약 파일 저장</td>
+</tr>
+<tr>
+<td>choose_directory_or_file</td>
+<td>실행 모드 선택 (디렉토리 또는 파일)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="디렉토리-구조">디렉토리 구조</h2>
+<pre><code>.
+├── transformations.json         # 변환 규칙 정의
+├── converted_sqls/              # 변환된 SQL 파일 저장 위치
+├── logs/                        # 각 SQL에 대한 로그 저장 위치
+├── reports/                     # HTML 리포트 및 CSV 요약 파일 저장
+├── sql_transformer.py          # 메인 실행 파일
+
+</code></pre>
+<h1 id="실행-방법">실행 방법</h1>
+<pre><code class="language-bash">python sql_transformer.py
+
+디렉토리를 선택하려면 1, 파일을 선택하려면 2를 입력하세요: 1
+디렉토리 경로를 입력하세요: ./oracle_sqls
+</code></pre>
+<h1 id="변환">변환</h1>
+<h2 id="-oracle--redshift-sql-변환-규칙표-자동-변환-가능-항목-포함">✅ Oracle → Redshift SQL 변환 규칙표 (자동 변환 가능 항목 포함)</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Description</th>
+<th>Pattern</th>
+<th>Replacement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>선언/제어문</td>
+<td>Oracle DECLARE → 수동 변환 필요</td>
+<td><code>DECLARE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+[^;]+;</code></td>
+<td><code>-- DECLARE \1 ... (convert manually)</code></td>
+</tr>
+<tr>
+<td>예외 처리</td>
+<td>EXCEPTION WHEN OTHERS → Redshift 없음</td>
+<td><code>EXCEPTION\s+WHEN\s+OTHERS\s+THEN</code></td>
+<td><code>-- EXCEPTION WHEN OTHERS THEN (convert manually)</code></td>
+</tr>
+<tr>
+<td>제어문</td>
+<td>BEGIN / END 블록 유지</td>
+<td><code>\bBEGIN</code></td>
+<td><code>BEGIN</code></td>
+</tr>
+<tr>
+<td>제어문</td>
+<td></td>
+<td><code>\bEND\b</code></td>
+<td><code>END</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>NUMBER(n,m) → DECIMAL(n,m)</td>
+<td><code>NUMBER\((\d+),\s*(\d+)\)</code></td>
+<td><code>DECIMAL(\1, \2)</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>NUMBER(10,0) → BIGINT</td>
+<td><code>NUMBER\(10,\s*0\)</code></td>
+<td><code>BIGINT</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>NUMBER(1,0) → SMALLINT</td>
+<td><code>NUMBER\(1,\s*0\)</code></td>
+<td><code>SMALLINT</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>RAW(n) → BYTEA</td>
+<td><code>\bRAW\(\d+\)</code></td>
+<td><code>BYTEA</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>VARCHAR2(n), NVARCHAR2(n) → VARCHAR(n)</td>
+<td>`\b(VARCHAR2</td>
+<td>NVARCHAR2)((\d+))`</td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>CHAR(n) 유지</td>
+<td><code>\bCHAR\((\d+)\)</code></td>
+<td><code>CHAR(\1)</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>LONG, CLOB → VARCHAR(65535)</td>
+<td>`\b(LONG</td>
+<td>CLOB)\b`</td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>BLOB → BYTEA</td>
+<td><code>\bBLOB\b</code></td>
+<td><code>BYTEA</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>FLOAT → DOUBLE PRECISION</td>
+<td><code>\bFLOAT\b</code></td>
+<td><code>DOUBLE PRECISION</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>BOOLEAN 유지</td>
+<td><code>\bBOOLEAN\b</code></td>
+<td><code>BOOLEAN</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>INTERVAL(n) → INTERVAL n</td>
+<td><code>INTERVAL\((\w+)\)</code></td>
+<td><code>INTERVAL \1</code></td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>BFILE → 지원 안 함</td>
+<td><code>\bBFILE\b</code></td>
+<td><code>-- NOT SUPPORTED (Use external storage)</code></td>
+</tr>
+<tr>
+<td>수학 함수</td>
+<td>수학 함수는 유지</td>
+<td><code>\bABS</code></td>
+<td><code>CEIL</code></td>
+</tr>
+<tr>
+<td>수학 함수</td>
+<td>BITAND(n, m) → (n &amp; m)</td>
+<td><code>BITAND\((.*?),\s*(.*?)\)</code></td>
+<td><code>(\1 &amp; \2)</code></td>
+</tr>
+<tr>
+<td>수학 함수</td>
+<td>REMAINDER(n1, n2) → n1 - n2 * ROUND(n1 / n2)</td>
+<td><code>REMAINDER\((.*?),\s*(.*?)\)</code></td>
+<td><code>(\1 - \2 * ROUND(\1 / \2))</code></td>
+</tr>
+<tr>
+<td>수학 함수</td>
+<td>LOG(m, n) → LOG(m, n)</td>
+<td><code>LOG\((.*?),\s*(.*?)\)</code></td>
+<td><code>LOG(\1, \2)</code></td>
+</tr>
+<tr>
+<td>수학 함수</td>
+<td>LOG(n), LN(n) → LN(n)</td>
+<td><code>LOG\((.*?)\)</code></td>
+<td><code>LN(\1)</code></td>
+</tr>
+<tr>
+<td>수학 함수</td>
+<td>TANH(n) → 수식으로 변환</td>
+<td><code>TANH\((.*?)\)</code></td>
+<td><code>((EXP(\1) - EXP(-\1)) / (EXP(\1) + EXP(-\1)))</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>ASCII 유지</td>
+<td><code>\bASCII</code></td>
+<td><code>ASCII</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>RPAD → LEFT(str)</td>
+<td><code>RPAD\((.*?),\s*(.*?),\s*(.*?)\)</code></td>
+<td><code>LEFT(\1, \2)</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>LPAD → RIGHT(REPEAT(pad, n))</td>
+<td><code>LPAD\((.*?),\s*(.*?),\s*(.*?)\)</code></td>
+<td><code>RIGHT(REPEAT(\3, \2), \2)</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>CHR(n) → ASCII_TO_CHAR(n)</td>
+<td><code>CHR\((.*?)\)</code></td>
+<td><code>ASCII_TO_CHAR(\1)</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>INSTR(a, b) → STRPOS(a, b)</td>
+<td><code>INSTR\((.*?),\s*(.*?)\)</code></td>
+<td><code>STRPOS(\1, \2)</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>CONCAT(a, b) → 유지</td>
+<td><code>CONCAT\((.*?),\s*(.*?)\)</code></td>
+<td><code>CONCAT(\1, \2)</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>LTRIM / RTRIM 유지</td>
+<td><code>LTRIM\((.*?),\s*(.*?)\)</code></td>
+<td><code>RTRIM(\1, \2)</code></td>
+</tr>
+<tr>
+<td>문자열 함수</td>
+<td>SUBSTR → SUBSTRING FROM FOR</td>
+<td><code>SUBSTR\((.*?),\s*(.*?),\s*(.*?)\)</code></td>
+<td><code>SUBSTRING(\1 FROM \2 FOR \3)</code></td>
+</tr>
+<tr>
+<td>날짜/시간</td>
+<td>DATE → TIMESTAMP</td>
+<td><code>\bDATE\b</code></td>
+<td><code>TIMESTAMP</code></td>
+</tr>
+<tr>
+<td>날짜/시간</td>
+<td>CURRENT_DATE, CURRENT_TIMESTAMP 유지</td>
+<td><code>\bCURRENT_DATE\b</code></td>
+<td><code>CURRENT_DATE</code></td>
+</tr>
+<tr>
+<td>날짜/시간</td>
+<td>SYSDATE → CURRENT_TIMESTAMP</td>
+<td><code>\bSYSDATE\b</code></td>
+<td><code>CURRENT_TIMESTAMP</code></td>
+</tr>
+<tr>
+<td>날짜/시간</td>
+<td>TO_CHAR(expr) → CAST(expr AS VARCHAR)</td>
+<td><code>TO_CHAR\((.*?)\)</code></td>
+<td><code>CAST(\1 AS VARCHAR)</code></td>
+</tr>
+<tr>
+<td>널 처리</td>
+<td>NVL → COALESCE</td>
+<td><code>NVL\((.*?),\s*(.*?)\)</code></td>
+<td><code>COALESCE(\1, \2)</code></td>
+</tr>
+<tr>
+<td>CASE 처리</td>
+<td>DECODE → CASE WHEN</td>
+<td><code>DECODE\((.*?),\s*(.*?),\s*(.*?)\)</code></td>
+<td><code>CASE WHEN \1 = \2 THEN \3 END</code></td>
+</tr>
+<tr>
+<td>시퀀스</td>
+<td>seq.NEXTVAL → NEXTVAL</td>
+<td><code>(\w+)\.NEXTVAL</code></td>
+<td><code>NEXTVAL('\1')</code></td>
+</tr>
+<tr>
+<td>시퀀스</td>
+<td>seq.CURRVAL → CURRVAL</td>
+<td><code>(\w+)\.CURRVAL</code></td>
+<td><code>CURRVAL('\1')</code></td>
+</tr>
+<tr>
+<td>계층 쿼리</td>
+<td>CONNECT BY PRIOR → WITH RECURSIVE 변환 필요</td>
+<td><code>CONNECT BY PRIOR (\w+) = (\w+)</code></td>
+<td><code>-- Use WITH RECURSIVE to convert CONNECT BY PRIOR</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="️-수동-변환-가이드-manual-conversion-guide">⚠️ 수동 변환 가이드 (Manual Conversion Guide)</h2>
+<h3 id="1-exception-when-others">1. EXCEPTION WHEN OTHERS</h3>
+<ul>
+<li><strong>설명</strong><br>
+Redshift는 Oracle의 <code>EXCEPTION WHEN OTHERS</code> 블록을 지원하지 않습니다. 오류 처리는 애플리케이션 레이어(Python, Java 등)나 ETL 도구에서 처리하거나, 쿼리 구조 자체를 방어적으로 설계해야 합니다.</li>
+</ul>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Oracle</span>
+<span class="hljs-keyword">BEGIN</span>
+  <span class="hljs-comment">-- some logic</span>
+  <span class="hljs-keyword">SELECT</span> <span class="hljs-number">1</span> <span class="hljs-operator">/</span> <span class="hljs-number">0</span> <span class="hljs-keyword">INTO</span> dummy <span class="hljs-keyword">FROM</span> dual;
+EXCEPTION
+  <span class="hljs-keyword">WHEN</span> OTHERS <span class="hljs-keyword">THEN</span>
+    <span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> error_log <span class="hljs-keyword">VALUES</span> (SYSDATE, SQLERRM);
+<span class="hljs-keyword">END</span>;
+</code></pre>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Redshift</span>
+<span class="hljs-comment">-- 직접적인 예외 처리는 불가</span>
+<span class="hljs-comment">-- 오류 가능성이 있는 연산은 조건문으로 방지하거나,</span>
+<span class="hljs-comment">-- ETL 도구 또는 애플리케이션에서 TRY / CATCH 처리</span>
+
+<span class="hljs-comment">-- 예시: 오류를 유발하지 않도록 CASE 사용</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-keyword">CASE</span> <span class="hljs-keyword">WHEN</span> denominator <span class="hljs-operator">=</span> <span class="hljs-number">0</span> <span class="hljs-keyword">THEN</span> <span class="hljs-keyword">NULL</span> <span class="hljs-keyword">ELSE</span> numerator <span class="hljs-operator">/</span> denominator <span class="hljs-keyword">END</span> <span class="hljs-keyword">AS</span> safe_division
+<span class="hljs-keyword">FROM</span> my_table;
+</code></pre>
+<hr>
+<h3 id="2-declare">2. DECLARE</h3>
+<ul>
+<li><strong>설명</strong><br>
+Redshift는 <code>DECLARE</code>를 통한 변수 선언을 지원하지 않습니다. 대부분 CTE(Common Table Expression) 또는 SELECT 서브쿼리로 대체할 수 있으며, 복잡한 로직은 외부 로직으로 분리하는 것을 권장합니다.</li>
+</ul>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Oracle</span>
+<span class="hljs-keyword">DECLARE</span>
+  v_total NUMBER;
+<span class="hljs-keyword">BEGIN</span>
+  <span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">INTO</span> v_total <span class="hljs-keyword">FROM</span> employees;
+  DBMS_OUTPUT.PUT_LINE(<span class="hljs-string">&#x27;Total: &#x27;</span> <span class="hljs-operator">||</span> v_total);
+<span class="hljs-keyword">END</span>;
+</code></pre>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Redshift</span>
+<span class="hljs-comment">-- CTE를 이용한 값 추출</span>
+<span class="hljs-keyword">WITH</span> emp_count <span class="hljs-keyword">AS</span> (
+  <span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> v_total <span class="hljs-keyword">FROM</span> employees
+)
+<span class="hljs-keyword">SELECT</span> <span class="hljs-string">&#x27;Total: &#x27;</span> <span class="hljs-operator">||</span> v_total <span class="hljs-keyword">AS</span> output
+<span class="hljs-keyword">FROM</span> emp_count;
+</code></pre>
+<hr>
+<h3 id="3-bfile">3. BFILE</h3>
+<ul>
+<li><strong>설명</strong><br>
+Redshift는 Oracle의 <code>BFILE</code> 타입(외부 바이너리 파일 참조)을 지원하지 않습니다. 대신 S3 URI 또는 외부 스토리지 위치 정보를 문자열로 저장하여 사용합니다.</li>
+</ul>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Oracle</span>
+<span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> files (
+  id NUMBER,
+  data BFILE
+);
+</code></pre>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Redshift</span>
+<span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> files (
+  id <span class="hljs-type">INT</span>,
+  file_uri <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">65535</span>) <span class="hljs-comment">-- 예: &#x27;s3://bucket-name/folder/file.pdf&#x27;</span>
+);
+</code></pre>
+<hr>
+<h3 id="4-connect-by-prior">4. CONNECT BY PRIOR</h3>
+<ul>
+<li><strong>설명</strong><br>
+Oracle의 계층 쿼리(트리 탐색)는 <code>CONNECT BY PRIOR</code> 구문을 사용하지만, Redshift는 이를 지원하지 않으며 <code>WITH RECURSIVE</code>로 대체해야 합니다. Anchor part와 Recursive part 구성, 종료 조건 주의.</li>
+</ul>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Oracle</span>
+<span class="hljs-keyword">SELECT</span> employee_id, manager_id
+<span class="hljs-keyword">FROM</span> employees
+<span class="hljs-keyword">START</span> <span class="hljs-keyword">WITH</span> manager_id <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span>
+<span class="hljs-keyword">CONNECT</span> <span class="hljs-keyword">BY</span> PRIOR employee_id <span class="hljs-operator">=</span> manager_id;
+</code></pre>
+<pre><code class="language-sql"><span class="hljs-comment">-- 예제 Redshift</span>
+<span class="hljs-keyword">WITH</span> <span class="hljs-keyword">RECURSIVE</span> employee_hierarchy <span class="hljs-keyword">AS</span> (
+  <span class="hljs-comment">-- Anchor: 최상위 관리자</span>
+  <span class="hljs-keyword">SELECT</span> employee_id, manager_id, <span class="hljs-number">1</span> <span class="hljs-keyword">AS</span> level
+  <span class="hljs-keyword">FROM</span> employees
+  <span class="hljs-keyword">WHERE</span> manager_id <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span>
+
+  <span class="hljs-keyword">UNION</span> <span class="hljs-keyword">ALL</span>
+
+  <span class="hljs-comment">-- Recursive: 하위 직원 탐색</span>
+  <span class="hljs-keyword">SELECT</span> e.employee_id, e.manager_id, eh.level <span class="hljs-operator">+</span> <span class="hljs-number">1</span>
+  <span class="hljs-keyword">FROM</span> employees e
+  <span class="hljs-keyword">JOIN</span> employee_hierarchy eh <span class="hljs-keyword">ON</span> e.manager_id <span class="hljs-operator">=</span> eh.employee_id
+)
+<span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span>
+<span class="hljs-keyword">FROM</span> employee_hierarchy;
+</code></pre>
+
+            
+            
+        </body>
+        </html>

@@ -1,0 +1,198 @@
+[
+  {
+    "description": "Oracle DECLARE → 수동 변환 필요",
+    "pattern": "DECLARE\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s+[^;]+;",
+    "replacement": "-- VARIABLE: \\1 ... (convert manually)",
+    "manual_review_required": true,
+    "manual_reason": "DECLARE 구문 수동 확인 필요"
+  },
+  {
+    "description": "Oracle EXCEPTION WHEN OTHERS → Redshift BEGIN CATCH 없음 (주석 처리)",
+    "pattern": "EXCEPTION\\s+WHEN\\s+OTHERS\\s+THEN",
+    "replacement": "-- Redshift does not support EXCEPTION block. Use TRY-CATCH logic in application code if needed.",
+    "manual_review_required": true,
+    "manual_reason": "EXCEPTION 구문 수동 확인 필요"
+  },
+  {
+    "description": "BEGIN / END 블록은 유지",
+    "pattern": "\\b(BEGIN|END;)\\b",
+    "replacement": "\\1"
+  },
+  {
+    "description": "NUMBER(n,m) → DECIMAL(n,m)",
+    "pattern": "NUMBER\\((\\d+),\\s*(\\d+)\\)",
+    "replacement": "DECIMAL(\\1, \\2)"
+  },
+  {
+    "description": "NUMBER(10,0) → BIGINT",
+    "pattern": "\\bNUMBER\\(10,\\s*0\\)\\b",
+    "replacement": "BIGINT"
+  },
+  {
+    "description": "NUMBER(1,0) → SMALLINT",
+    "pattern": "\\bNUMBER\\(1,\\s*0\\)\\b",
+    "replacement": "SMALLINT"
+  },
+  {
+    "description": "RAW(n) → BYTEA",
+    "pattern": "\\bRAW\\(\\d+\\)",
+    "replacement": "BYTEA"
+  },
+  {
+    "description": "VARCHAR2(n), NVARCHAR2(n) → VARCHAR(n)",
+    "pattern": "\\b(VARCHAR2|NVARCHAR2)\\((\\d+)\\)",
+    "replacement": "VARCHAR(\\2)"
+  },
+  {
+    "description": "CHAR(n) 유지",
+    "pattern": "\\bCHAR\\((\\d+)\\)",
+    "replacement": "CHAR(\\1)"
+  },
+  {
+    "description": "LONG, CLOB → VARCHAR(65535)",
+    "pattern": "\\b(LONG|CLOB)\\b",
+    "replacement": "VARCHAR(65535)"
+  },
+  {
+    "description": "BLOB → BYTEA",
+    "pattern": "\\bBLOB\\b",
+    "replacement": "BYTEA"
+  },
+  {
+    "description": "FLOAT → DOUBLE PRECISION",
+    "pattern": "\\bFLOAT\\b",
+    "replacement": "DOUBLE PRECISION"
+  },
+  {
+    "description": "BOOLEAN 유지",
+    "pattern": "\\bBOOLEAN\\b",
+    "replacement": "BOOLEAN"
+  },
+  {
+    "description": "INTERVAL(n) → INTERVAL n",
+    "pattern": "INTERVAL\\((\\w+)\\)",
+    "replacement": "INTERVAL \\1"
+  },
+  {
+    "description": "BFILE → 지원 안 함",
+    "pattern": "\\bBFILE\\b",
+    "replacement": "-- NOT SUPPORTED (Use external storage)"
+  },
+  {
+    "description": "수학 함수들 (ABS, CEIL 등) → 이름 그대로 유지",
+    "pattern": "\\b(ABS|CEIL|FLOOR|ROUND|TRUNC|SIGN|SQRT|MOD|POWER|EXP|COS|SIN|TAN|ACOS|ASIN|ATAN)\\((.*?)\\)",
+    "replacement": "\\1(\\2)"
+  },
+  {
+    "description": "BITAND(n, m) → (n & m)",
+    "pattern": "BITAND\\((.*?),\\s*(.*?)\\)",
+    "replacement": "(\\1 & \\2)"
+  },
+  {
+    "description": "REMAINDER(n1, n2) → n1 - n2 * ROUND(n1 / n2)",
+    "pattern": "REMAINDER\\((.*?),\\s*(.*?)\\)",
+    "replacement": "(\\1 - \\2 * ROUND(\\1 / \\2))"
+  },
+  {
+    "description": "LOG(m, n) → LOG(m, n)",
+    "pattern": "LOG\\((.*?),\\s*(.*?)\\)",
+    "replacement": "LOG(\\1, \\2)"
+  },
+  {
+    "description": "LOG(n), LN(n) → LN(n)",
+    "pattern": "\\b(LOG|LN)\\((.*?)\\)",
+    "replacement": "LN(\\2)"
+  },
+  {
+    "description": "TANH(n) → (exp(n)-exp(-n))/(exp(n)+exp(-n))",
+    "pattern": "TANH\\((.*?)\\)",
+    "replacement": "((EXP(\\1) - EXP(-\\1)) / (EXP(\\1) + EXP(-\\1)))"
+  },
+  {
+    "description": "문자열 함수들 (ASCII, LENGTH 등) → 유지",
+    "pattern": "\\b(ASCII|LENGTH|INITCAP|LOWER|UPPER)\\((.*?)\\)",
+    "replacement": "\\1(\\2)"
+  },
+  {
+    "description": "RPAD(str, n, pad) → LEFT(str || REPEAT(pad, n), n)",
+    "pattern": "RPAD\\((.*?),\\s*(\\d+),\\s*(.*?)\\)",
+    "replacement": "LEFT(\\1 || REPEAT(\\3, \\2), \\2)"
+  },
+  {
+    "description": "LPAD(str, n, pad) → RIGHT(REPEAT(pad, n) || str, n)",
+    "pattern": "LPAD\\((.*?),\\s*(\\d+),\\s*(.*?)\\)",
+    "replacement": "RIGHT(REPEAT(\\3, \\2) || \\1, \\2)"
+  },
+  {
+    "description": "CHR(n) → ASCII_TO_CHAR(n)",
+    "pattern": "CHR\\((.*?)\\)",
+    "replacement": "ASCII_TO_CHAR(\\1)"
+  },
+  {
+    "description": "INSTR(str, substr) → STRPOS(str, substr)",
+    "pattern": "INSTR\\((.*?),\\s*(.*?)\\)",
+    "replacement": "STRPOS(\\1, \\2)"
+  },
+  {
+    "description": "CONCAT(a, b) → CONCAT(a, b)",
+    "pattern": "CONCAT\\((.*?),\\s*(.*?)\\)",
+    "replacement": "CONCAT(\\1, \\2)"
+  },
+  {
+    "description": "LTRIM / RTRIM 유지",
+    "pattern": "\\b(LTRIM|RTRIM)\\((.*?),\\s*(.*?)\\)",
+    "replacement": "\\1(\\2, \\3)"
+  },
+  {
+    "description": "SUBSTR(a, b, c) → SUBSTRING(a FROM b FOR c)",
+    "pattern": "SUBSTR\\(([^,]+),\\s*([^,]+)(?:,\\s*([^\\)]+))?\\)",
+    "replacement": "SUBSTRING(\\1 FROM \\2 FOR \\3)"
+  },
+  {
+    "description": "DATE → TIMESTAMP",
+    "pattern": "\\bDATE\\b",
+    "replacement": "TIMESTAMP"
+  },
+  {
+    "description": "CURRENT_DATE, CURRENT_TIMESTAMP 유지",
+    "pattern": "\\b(CURRENT_DATE|CURRENT_TIMESTAMP)\\b",
+    "replacement": "\\1"
+  },
+  {
+    "description": "SYSDATE → CURRENT_TIMESTAMP",
+    "pattern": "\\bSYSDATE\\b",
+    "replacement": "CURRENT_TIMESTAMP"
+  },
+  {
+    "description": "TO_CHAR(expr) → CAST(expr AS VARCHAR)",
+    "pattern": "TO_CHAR\\((.*?)\\)",
+    "replacement": "CAST(\\1 AS VARCHAR)"
+  },
+  {
+    "description": "NVL(a, b) → COALESCE(a, b)",
+    "pattern": "NVL\\((.*?),\\s*(.*?)\\)",
+    "replacement": "COALESCE(\\1, \\2)"
+  },
+  {
+    "description": "DECODE(a, b, c) → CASE WHEN a = b THEN c END",
+    "pattern": "DECODE\\((.*?),\\s*(.*?),\\s*(.*?)\\)",
+    "replacement": "CASE WHEN \\1 = \\2 THEN \\3 END"
+  },
+  {
+    "description": "seq.NEXTVAL → NEXTVAL('seq')",
+    "pattern": "\\b(\\w+)\\.NEXTVAL\\b",
+    "replacement": "NEXTVAL('\\1')"
+  },
+  {
+    "description": "seq.CURRVAL → CURRVAL('seq')",
+    "pattern": "\\b(\\w+)\\.CURRVAL\\b",
+    "replacement": "CURRVAL('\\1')"
+  },
+  {
+    "description": "CONNECT BY PRIOR → WITH RECURSIVE 로 변환 필요",
+    "pattern": "CONNECT BY PRIOR (\\w+) = (\\w+)",
+    "replacement": "-- CONNECT BY PRIOR \\1 = \\2\\n-- Convert to: WITH RECURSIVE ... (manually build the recursive query)",
+    "manual_review_required": true,
+    "manual_reason": "계층 쿼리(CONNECT BY) 변환 필요"
+  }
+]
