@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Oracle to Redshift SQL Transformation Examples</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="oracle-to-redshift-sql-transformation-examples">Oracle to Redshift SQL Transformation Examples</h1>
+<p>이 문서는 Oracle SQL 구문을 Amazon Redshift에 맞게 변환하는 예제를 제공합니다.<br>
+각 예제에는 <strong>As-Is</strong>(원본) 쿼리와 <strong>To-Be</strong>(변환 후) 쿼리를 포함하며, 사용 용도, 변환 시 주의할 점, 스크립트 자동화 가능 여부를 명시합니다.</p>
+<hr>
+<h2 id="목차">목차</h2>
+<ol>
+<li><a href="#1-%EC%84%A0%EC%96%B8%EC%A0%9C%EC%96%B4%EB%AC%B8">선언/제어문</a></li>
+<li><a href="#2-%EB%8D%B0%EC%9D%B4%ED%84%B0-%ED%83%80%EC%9E%85-%EB%B3%80%ED%99%98">데이터 타입 변환</a></li>
+<li><a href="#3-%EB%82%A0%EC%A7%9C%EC%8B%9C%EA%B0%84-%ED%95%A8%EC%88%98-%EB%B3%80%ED%99%98">날짜/시간 함수 변환</a></li>
+<li><a href="#4-%EC%88%98%ED%95%99-%ED%95%A8%EC%88%98-%EB%B3%80%ED%99%98">수학 함수 변환</a></li>
+<li><a href="#5-%EB%AC%B8%EC%9E%90%EC%97%B4-%ED%95%A8%EC%88%98-%EB%B3%80%ED%99%98">문자열 함수 변환</a></li>
+<li><a href="#6-%EB%84%90-%EC%B2%98%EB%A6%AC-%EB%B0%8F-case">널 처리 및 CASE</a></li>
+<li><a href="#7-%EC%8B%9C%ED%80%80%EC%8A%A4">시퀀스</a></li>
+<li><a href="#8-%EC%98%88%EC%99%B8-%EC%B2%98%EB%A6%AC">예외 처리</a></li>
+<li><a href="#9-%EA%B3%84%EC%B8%B5-%EC%BF%BC%EB%A6%AC">계층 쿼리</a></li>
+<li><a href="#10-%EA%B8%B0%ED%83%80-%EB%B3%80%ED%99%98">기타 변환</a></li>
+</ol>
+<hr>
+<h2 id="1-선언제어문">1. 선언/제어문</h2>
+<blockquote>
+<p>PL/SQL 익명 블록을 Redshift의 PL/pgSQL로 변환할 때 사용합니다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DECLARE</td>
+<td>변수 선언 및 초기화</td>
+<td><code>sql&lt;br&gt;DECLARE my_var NUMBER;&lt;br&gt;BEGIN&lt;br&gt;  my_var := 1;&lt;br&gt;END;</code></td>
+<td><code>sql&lt;br&gt;DO $$&lt;br&gt;DECLARE my_var INTEGER;&lt;br&gt;BEGIN&lt;br&gt;  my_var := 1;&lt;br&gt;END;&lt;br&gt;$$ LANGUAGE plpgsql;</code></td>
+<td>불가능</td>
+<td>데이터 타입 매핑 수동 검토 필요</td>
+</tr>
+<tr>
+<td>BEGIN/END</td>
+<td>익명 블록 시작/종료</td>
+<td><code>sql&lt;br&gt;BEGIN&lt;br&gt;  NULL;&lt;br&gt;END;</code></td>
+<td><code>sql&lt;br&gt;BEGIN;&lt;br&gt;  -- SQL 문&lt;br&gt;END;</code></td>
+<td>불필요</td>
+<td>구문 차이 없음</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2-데이터-타입-변환">2. 데이터 타입 변환</h2>
+<blockquote>
+<p>Oracle과 Redshift의 데이터 타입 차이를 보완하기 위한 변환입니다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NUMBER(n,m)</td>
+<td>소수점 포함 숫자 (금액, 비율)</td>
+<td><code>col NUMBER(10,2)</code></td>
+<td><code>col DECIMAL(10,2)</code></td>
+<td>가능</td>
+<td>정밀도 최대 38자리 확인</td>
+</tr>
+<tr>
+<td>NUMBER(10,0)</td>
+<td>10자리 정수 (큰 식별자)</td>
+<td><code>col NUMBER(10,0)</code></td>
+<td><code>col BIGINT</code></td>
+<td>가능</td>
+<td>±9.22e18 범위 확인</td>
+</tr>
+<tr>
+<td>NUMBER(1,0)</td>
+<td>1자리 정수 (플래그)</td>
+<td><code>col NUMBER(1,0)</code></td>
+<td><code>col SMALLINT</code></td>
+<td>가능</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>VARCHAR2(n)</td>
+<td>가변 길이 문자열 (이름, 설명)</td>
+<td><code>col VARCHAR2(100)</code></td>
+<td><code>col VARCHAR(100)</code></td>
+<td>가능</td>
+<td>최대 65535자 확인</td>
+</tr>
+<tr>
+<td>CLOB</td>
+<td>대용량 문자 (문서, 로그)</td>
+<td><code>col CLOB</code></td>
+<td><code>col VARCHAR(MAX)</code></td>
+<td>부분 가능</td>
+<td>성능·크기 제한 검토</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-날짜시간-함수-변환">3. 날짜/시간 함수 변환</h2>
+<blockquote>
+<p>날짜/시간 함수는 포맷 차이와 타임존 기본값 처리에 유의하세요.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TO_DATE (표준)</td>
+<td>문자열→날짜 (YYYY‑MM‑DD)</td>
+<td><code>TO_DATE('2025-04-13','YYYY-MM-DD')</code></td>
+<td><code>CAST('2025-04-13' AS TIMESTAMP)</code></td>
+<td>가능</td>
+<td>형식 일치 확인</td>
+</tr>
+<tr>
+<td>TO_DATE (커스텀)</td>
+<td>다양한 입력 포맷 처리</td>
+<td><code>TO_DATE('13/04/2025','DD/MM/YYYY')</code></td>
+<td><code>TO_TIMESTAMP('13/04/2025','DD/MM/YYYY')</code></td>
+<td>불가능</td>
+<td>수동 포맷 지정 필요</td>
+</tr>
+<tr>
+<td>SYSDATE</td>
+<td>시스템 현재 시간</td>
+<td><code>SYSDATE</code></td>
+<td><code>CURRENT_TIMESTAMP</code></td>
+<td>가능</td>
+<td>타임존 설정 확인</td>
+</tr>
+<tr>
+<td>TRUNC(day)</td>
+<td>일별 집계용 절삭</td>
+<td><code>TRUNC(SYSDATE)</code></td>
+<td><code>DATE_TRUNC('day', CURRENT_TIMESTAMP)</code></td>
+<td>가능</td>
+<td>시간 정보 제거됨</td>
+</tr>
+<tr>
+<td>TRUNC(month)</td>
+<td>월별 집계용 절삭</td>
+<td><code>TRUNC(SYSDATE,'MM')</code></td>
+<td><code>DATE_TRUNC('month', CURRENT_TIMESTAMP)</code></td>
+<td>가능</td>
+<td>월 첫날 00:00 설정 확인</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="4-수학-함수-변환">4. 수학 함수 변환</h2>
+<blockquote>
+<p>기본 함수는 동일, 비표준 함수는 수식으로 대체하세요.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ABS</td>
+<td>절댓값</td>
+<td><code>ABS(x)</code></td>
+<td><code>ABS(x)</code></td>
+<td>불필요</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>CEIL</td>
+<td>올림</td>
+<td><code>CEIL(x)</code></td>
+<td><code>CEIL(x)</code></td>
+<td>불필요</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>BITAND</td>
+<td>비트 AND (플래그)</td>
+<td><code>BITAND(n,m)</code></td>
+<td><code>n &amp; m</code></td>
+<td>가능</td>
+<td>연산자 우선순위</td>
+</tr>
+<tr>
+<td>REMAINDER</td>
+<td>나머지</td>
+<td><code>REMAINDER(n1,n2)</code></td>
+<td><code>n1 - n2 * ROUND(n1/n2)</code></td>
+<td>가능</td>
+<td>음수 결과 주의</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5-문자열-함수-변환">5. 문자열 함수 변환</h2>
+<blockquote>
+<p>함수명 및 파라미터 순서 차이에 유의하세요.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NVL</td>
+<td>널 대체 (기본값)</td>
+<td><code>NVL(a,b)</code></td>
+<td><code>COALESCE(a,b)</code></td>
+<td>가능</td>
+<td>다중 인자 지원</td>
+</tr>
+<tr>
+<td>CONCAT</td>
+<td>문자열 결합</td>
+<td><code>CONCAT(a,b)</code></td>
+<td><code>CONCAT(a,b)</code></td>
+<td>불필요</td>
+<td>NULL 처리 차이</td>
+</tr>
+<tr>
+<td>SUBSTR</td>
+<td>부분 문자열 추출</td>
+<td><code>SUBSTR(s,pos,len)</code></td>
+<td><code>SUBSTRING(s FROM pos FOR len)</code></td>
+<td>가능</td>
+<td>인덱스 시작 1-based</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6-널-처리-및-case">6. 널 처리 및 CASE</h2>
+<blockquote>
+<p>DECODE는 CASE WHEN으로 변환하세요.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DECODE</td>
+<td>조건 분기</td>
+<td><code>DECODE(status,'A','Active','I','Inactive')</code></td>
+<td><code>CASE WHEN status='A' THEN 'Active' WHEN status='I' THEN 'Inactive' ELSE 'Unknown' END</code></td>
+<td>불가능</td>
+<td>ELSE 절 추가</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="7-시퀀스">7. 시퀀스</h2>
+<blockquote>
+<p>Redshift 표준 NEXTVAL/CURRVAL 함수 사용.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NEXTVAL</td>
+<td>다음 시퀀스 값</td>
+<td><code>seq.NEXTVAL</code></td>
+<td><code>NEXTVAL('seq')</code></td>
+<td>가능</td>
+<td>시퀀스 존재 여부</td>
+</tr>
+<tr>
+<td>CURRVAL</td>
+<td>현재 시퀀스 값</td>
+<td><code>seq.CURRVAL</code></td>
+<td><code>CURRVAL('seq')</code></td>
+<td>가능</td>
+<td>NEXTVAL 선행</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="8-예외-처리">8. 예외 처리</h2>
+<blockquote>
+<p>PL/pgSQL 예외 처리 구조로 변환해야 합니다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EXCEPTION</td>
+<td>예외 처리 블록</td>
+<td><code>EXCEPTION WHEN OTHERS THEN …</code></td>
+<td><code>EXCEPTION WHEN OTHERS THEN RAISE NOTICE '…';</code></td>
+<td>불가능</td>
+<td>RAISE NOTICE 사용</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="9-계층-쿼리">9. 계층 쿼리</h2>
+<blockquote>
+<p>CONNECT BY는 재귀 CTE로 변환하세요.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CONNECT BY</td>
+<td>계층 구조 조회</td>
+<td><code>CONNECT BY PRIOR id=parent_id</code></td>
+<td><code>sql&lt;br&gt;WITH RECURSIVE cte AS (... )&lt;br&gt;SELECT * FROM cte;</code></td>
+<td>불가능</td>
+<td>재귀 깊이 제한</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="10-기타-변환">10. 기타 변환</h2>
+<blockquote>
+<p>DDL 힌트 및 옵션은 제거하거나 주석 처리하세요.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>용도</th>
+<th>As-Is (Oracle)</th>
+<th>To-Be (Redshift)</th>
+<th>스크립트</th>
+<th>주의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hint 제거</td>
+<td>실행 계획 힌트</td>
+<td><code>/*+ INDEX(emp emp_idx) */</code></td>
+<td><code>-- 제거</code></td>
+<td>가능</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>스토리지 옵션</td>
+<td>TABLESPACE/ STORAGE</td>
+<td><code>STORAGE(...)</code></td>
+<td><code>-- 제거</code></td>
+<td>가능</td>
+<td>DDL 검토</td>
+</tr>
+<tr>
+<td>PCTFREE 등 제거</td>
+<td>테이블 옵션</td>
+<td><code>PCTFREE ... INITRANS ...</code></td>
+<td><code>-- 제거</code></td>
+<td>가능</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>PRAGMA/AUTONOMOUS</td>
+<td>트랜잭션 옵션</td>
+<td><code>PRAGMA AUTONOMOUS_TRANSACTION</code></td>
+<td><code>-- 제거</code></td>
+<td>불가능</td>
+<td>수동 로직 재작성 필요</td>
+</tr>
+</tbody>
+</table>
+
+            <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+            
+        </body>
+        </html>
