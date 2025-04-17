@@ -1,7 +1,8 @@
 
-# 🛠 Oracle to Redshift SQL Transformer
+# 🛠 Oracle to Redshift SQL Transformer 
 
-Oracle SQL 스크립트를 Amazon Redshift 호환 SQL로 자동 변환하고, 수동 검토가 필요한 항목을 분류하여 리포트로 제공하는 Python 기반 도구입니다.
+Oracle SQL 스크립트를 Amazon Redshift 호환 SQL로 자동 변환하고, 수동 검토가 필요한 항목을 분류하여 리포트로 제공하는 Python 기반 도구입니다. 
+ - Ora2Red 기준 설명입니다.
 
 ---
 
