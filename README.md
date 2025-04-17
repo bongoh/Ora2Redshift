@@ -32,15 +32,13 @@ Oracle SQL 스크립트를 Amazon Redshift 호환 SQL로 자동 변환하고, �
 ## 프로젝트-구조
 ```
 oracle_to_redshift/
-├── main.py
+├── Ora2Red.py       # 실행 
 ├── config.py
-├── file_processor.py
-├── sql_transformer.py
+├── file_processor.py  # SQL 파일 읽기/쓰기 처리
+├── sql_transformer.py  # SQL 기반 규칙으로 변환
 ├── sql_classifier.py
-├── report_generator.py
-├── transformations.json
-├── requirements.txt
-└── README.md
+├── report_generator.py  # CSV / HTML 리포트 생성
+└── transformations.json
 ```
 
 
