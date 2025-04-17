@@ -1,0 +1,724 @@
+[
+  {
+    "description": "TO_DATE with custom format → MANUAL REVIEW",
+    "pattern": "TO_DATE\\(([^,]+),\\s*'(?:(?![YMD-]).)+'\\)",
+    "replacement": "CAST(\\1 AS TIMESTAMP)",
+    "manual_review_required": true,
+    "manual_reason": "비표준 날짜 형식이 감지되었습니다. 수동 변환이 필요합니다.",
+    "priority": 1,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "비표준 날짜 형식 발견 시 반드시 수동 검토 필요",
+    "example_as_is": "SELECT TO_DATE('24-Jan-2024', 'DD-Mon-YYYY') FROM DUAL;",
+    "example_to_be": "-- 수동 검토 필요",
+    "usage_context": "비표준 날짜 포맷 사용 시 수동 검토"
+  },
+  {
+    "description": "Oracle 구문 조인(+) → 명시적 JOIN",
+    "pattern": "\\b(\\w+)\\.(\\w+)\\s*=\\s*(\\w+)\\.(\\w+)\\(+\\)",
+    "replacement": "-- 수동 검토 필요: Oracle 구문 조인 → 명시적 JOIN 으로 변경하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Oracle의 (+) 조인 구문은 Redshift에서 지원되지 않습니다.",
+    "priority": 2,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "Oracle의 OUTER JOIN을 명시적으로 변환해야 함",
+    "example_as_is": "SELECT * FROM emp e, dept d WHERE e.deptno = d.deptno(+);",
+    "example_to_be": "-- 수동 변환 필요: LEFT JOIN 사용 필요"
+  },
+  {
+    "description": "SEQUENCE.NEXTVAL → 수동 변환",
+    "pattern": "\\b(\\w+)\\.NEXTVAL\\b",
+    "replacement": "-- 수동 변환 필요: \\1.NEXTVAL → IDENTITY 컬럼 또는 ROW_NUMBER() 사용 고려",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 Oracle의 SEQUENCE를 직접 지원하지 않음",
+    "priority": 3,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "AUTO_INCREMENT나 row_number() 사용으로 대체",
+    "example_as_is": "INSERT INTO emp (id) VALUES (emp_seq.NEXTVAL);",
+    "example_to_be": "-- 수동 변환 필요: IDENTITY 속성 활용 고려"
+  },
+  {
+    "description": "MERGE INTO → UPSERT 재작성",
+    "pattern": "\\bMERGE\\s+INTO\\b",
+    "replacement": "-- 수동 변환 필요: MERGE INTO → UPSERT 로직으로 재작성",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 MERGE INTO 문을 지원하지 않습니다.",
+    "priority": 4,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "MERGE 대신 UPDATE + INSERT 또는 staging 테이블 사용 필요",
+    "example_as_is": "MERGE INTO emp e USING new_emp n ON (e.id = n.id) WHEN MATCHED THEN UPDATE ...",
+    "example_to_be": "-- 수동 변환 필요: UPDATE → INSERT 조합 필요"
+  },
+  {
+    "description": "CONNECT BY 계층 쿼리 → RECURSIVE CTE",
+    "pattern": "\\bCONNECT\\s+BY\\b",
+    "replacement": "-- 수동 변환 필요: CONNECT BY → WITH RECURSIVE 구문으로 재작성",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 CONNECT BY 기반 계층 쿼리를 지원하지 않습니다.",
+    "priority": 5,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "재귀 CTE (WITH RECURSIVE) 구문으로 작성 필요",
+    "example_as_is": "SELECT * FROM emp START WITH mgr IS NULL CONNECT BY PRIOR empno = mgr;",
+    "example_to_be": "-- 수동 변환 필요: WITH RECURSIVE 작성 필요"
+  },
+  {
+    "description": "DBMS_OUTPUT.PUT_LINE → RAISE NOTICE or manual logging",
+    "pattern": "DBMS_OUTPUT\\.PUT_LINE\\(([^)]+)\\);",
+    "replacement": "-- 수동 변환 필요: DBMS_OUTPUT.PUT_LINE(\\1)을 RAISE NOTICE 또는 로깅 로직으로 대체하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Redshift에서는 DBMS_OUTPUT.PUT_LINE을 사용할 수 없습니다.",
+    "priority": 6,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "출력 함수 변환은 수동 검토 필요",
+    "example_as_is": "DBMS_OUTPUT.PUT_LINE('처리 완료');",
+    "example_to_be": "-- 수동 변환 필요: RAISE NOTICE '처리 완료';",
+    "usage_context": "디버깅용 메시지를 출력할 때"
+  },
+  {
+    "description": "CLOB → VARCHAR(MAX)",
+    "pattern": "\\bCLOB\\b",
+    "replacement": "VARCHAR(MAX)",
+    "manual_review_required": true,
+    "manual_reason": "Redshift에서 CLOB 타입을 직접 지원하지 않습니다. 크기 제한을 고려하세요.",
+    "priority": 7,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "CLOB을 VARCHAR(MAX)로 변환, 수동 검토 필요",
+    "example_as_is": "description CLOB",
+    "example_to_be": "description VARCHAR(MAX)",
+    "usage_context": "대용량 문자열 데이터 정의 시"
+  },
+  {
+    "description": "EXPLICIT CURSOR LOGIC → MANUAL CONVERSION REQUIRED",
+    "pattern": "\\bCURSOR\\s+(\\w+)\\s+IS",
+    "replacement": "-- 수동 변환 필요: 커서 정의 \\1. 임시 테이블 또는 set-returning 함수로 재작성하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 명시적 커서 또는 PL/SQL 커서 구문을 지원하지 않습니다.",
+    "priority": 8,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "명시적 커서 로직은 수동 변환 필요",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "OPEN cursor → comment with manual note",
+    "pattern": "\\bOPEN\\s+(\\w+)\\s*;",
+    "replacement": "-- 수동 변환 필요: OPEN \\1; 루프 또는 임시 테이블로 재설계하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 OPEN 커서 구문을 지원하지 않습니다.",
+    "priority": 9,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "커서 OPEN 구문은 수동 변환 필요",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "FETCH cursor → comment with manual note",
+    "pattern": "\\bFETCH\\s+(\\w+)\\s+INTO",
+    "replacement": "-- 수동 변환 필요: FETCH \\1 INTO; 로직을 재설계하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 커서 FETCH 작업을 지원하지 않습니다.",
+    "priority": 10,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "커서 FETCH 구문은 수동 변환 필요",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "CLOSE cursor → comment with manual note",
+    "pattern": "\\bCLOSE\\s+(\\w+)\\s*;",
+    "replacement": "-- 수동 변환 필요: CLOSE \\1; Redshift 로직에서는 필요 없을 수 있습니다.",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 명시적 CLOSE 커서를 지원하지 않습니다.",
+    "priority": 11,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "커서 CLOSE 구문은 수동 변환 필요",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "%TYPE → MANUAL CONVERSION REQUIRED",
+    "pattern": "\\b\\w+\\.\\w+%TYPE\\b",
+    "replacement": "-- 수동 변환 필요: %TYPE를 실제 컬럼 타입으로 대체하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Oracle %TYPE은 Redshift에서 지원되지 않습니다.",
+    "priority": 12,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "%TYPE 변환은 수동 검토 필요",
+    "example_as_is": "v_salary employees.salary%TYPE;",
+    "example_to_be": "-- 수동 변환 필요: v_salary DECIMAL(10,2);",
+    "usage_context": "테이블 컬럼과 동일한 타입을 변수에 적용할 때"
+  },
+  {
+    "description": "%ROWTYPE → MANUAL CONVERSION REQUIRED",
+    "pattern": "\\b\\w+%ROWTYPE\\b",
+    "replacement": "-- 수동 변환 필요: %ROWTYPE를 복합 행 타입 또는 명시적 선언으로 대체하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Oracle %ROWTYPE은 Redshift에서 지원되지 않습니다.",
+    "priority": 13,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "%ROWTYPE 변환은 수동 검토 필요",
+    "example_as_is": "v_emp employees%ROWTYPE;",
+    "example_to_be": "-- 수동 변환 필요: 명시적 컬럼 정의 필요",
+    "usage_context": "테이블 구조 전체를 변수로 받을 때"
+  },
+  {
+    "description": "PRAGMA or AUTONOMOUS_TRANSACTION → Not supported",
+    "pattern": "\\bPRAGMA\\b|\\bAUTONOMOUS_TRANSACTION\\b",
+    "replacement": "-- 지원 안 됨: Redshift 호환 트랜잭션 처리 로직으로 재작성하세요.",
+    "manual_review_required": true,
+    "manual_reason": "Oracle PRAGMA 및 독립 트랜잭션은 Redshift에서 지원되지 않습니다.",
+    "priority": 14,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "해당 문법은 지원되지 않으므로 수동 변환 필요",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "LONG → VARCHAR(MAX)",
+    "pattern": "\\bLONG\\b",
+    "replacement": "VARCHAR(MAX)",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 LONG 타입을 직접 지원하지 않음",
+    "priority": 15,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "LONG 타입은 VARCHAR(MAX)로 변환 필요",
+    "example_as_is": "note LONG",
+    "example_to_be": "note VARCHAR(MAX)",
+    "usage_context": "대용량 텍스트 저장"
+  },
+  {
+    "description": "RAW → BYTEA 또는 VARCHAR",
+    "pattern": "\\bRAW\\((\\d+)\\)",
+    "replacement": "VARCHAR(\\1)",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 RAW 바이너리 타입을 지원하지 않음",
+    "priority": 16,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "high",
+    "notes": "RAW는 Redshift에서 직접 지원되지 않음. 인코딩 처리 필요",
+    "example_as_is": "data RAW(2000)",
+    "example_to_be": "data VARCHAR(2000)",
+    "usage_context": "바이너리 저장 시 대체 필요"
+  },
+  {
+    "description": "NUMBER(p,0) where p ≥ 19 → MANUAL REVIEW",
+    "pattern": "\\bNUMBER\\((\\d{2,}),\\s*0\\)",
+    "replacement": "BIGINT",
+    "manual_review_required": true,
+    "manual_reason": "BIGINT의 최대 정밀도를 초과합니다. NUMERIC 또는 DECIMAL 사용 여부를 검토하세요.",
+    "priority": 17,
+    "applicable_to": [
+      "DDL",
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "숫자 타입의 정밀도가 높아 수동 검토 필요",
+    "example_as_is": "age NUMBER(5,0)",
+    "example_to_be": "age INTEGER",
+    "usage_context": "정수 (2~9자리) 저장 시"
+  },
+  {
+    "description": "EXCEPTION block → MANUAL REVIEW",
+    "pattern": "EXCEPTION\\s+WHEN",
+    "replacement": "-- 수동 검토 필요: 예외 처리 로직은 Redshift로 직접 이식할 수 없습니다.",
+    "manual_review_required": true,
+    "manual_reason": "Redshift는 EXCEPTION 블록을 지원하지 않습니다. 예외 처리 로직을 재구성하세요.",
+    "priority": 18,
+    "applicable_to": [
+      "DDL",
+      "DML"
+    ],
+    "criticality": "high",
+    "notes": "예외 처리 블록은 수동 변환 필요",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "DECODE → CASE WHEN 구문",
+    "pattern": "\\bDECODE\\(",
+    "replacement": "-- 수동 변환 필요: DECODE → CASE WHEN 으로 재작성",
+    "manual_review_required": true,
+    "manual_reason": "DECODE는 Redshift에서 지원되지 않음. CASE WHEN으로 변환 필요",
+    "priority": 19,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "medium",
+    "notes": "단순 조건 분기 로직은 CASE WHEN으로 재작성 가능",
+    "example_as_is": "SELECT DECODE(status, 'A', 'Active', 'I', 'Inactive', 'Unknown') FROM dual;",
+    "example_to_be": "SELECT CASE status WHEN 'A' THEN 'Active' WHEN 'I' THEN 'Inactive' ELSE 'Unknown' END FROM dual;",
+    "usage_context": "조건 분기 처리 시 사용"
+  },
+  {
+    "description": "TO_DATE → CAST(AS TIMESTAMP)",
+    "pattern": "TO_DATE\\(([^,]+),\\s*'[^']*'\\)",
+    "replacement": "CAST(\\1 AS TIMESTAMP)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 20,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "표준 날짜 형식으로 변환",
+    "example_as_is": "SELECT TO_DATE('2024-01-01', 'YYYY-MM-DD') FROM DUAL;",
+    "example_to_be": "SELECT CAST('2024-01-01' AS TIMESTAMP) FROM DUAL;",
+    "usage_context": "표준 날짜 문자열을 TIMESTAMP로 변환"
+  },
+  {
+    "description": "SYSDATE → CURRENT_DATE (날짜만)",
+    "pattern": "\\bSYSDATE\\b",
+    "replacement": "CURRENT_DATE",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 21,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "날짜만 필요할 경우 CURRENT_DATE 사용",
+    "example_as_is": "SELECT SYSDATE FROM DUAL;",
+    "example_to_be": "SELECT CURRENT_DATE FROM DUAL;",
+    "usage_context": "시각 정보 불필요한 날짜 조회 시"
+  },
+  {
+    "description": "ADD_MONTHS → DATEADD(month, ...)",
+    "pattern": "\\bADD_MONTHS\\(([^,]+),\\s*([^\\)]+)\\)",
+    "replacement": "DATEADD(month, \\2, \\1)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 22,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "월 단위 날짜 계산",
+    "example_as_is": "SELECT ADD_MONTHS(order_date, 3) FROM orders;",
+    "example_to_be": "SELECT DATEADD(month, 3, order_date) FROM orders;",
+    "usage_context": "날짜에 n개월 더하기"
+  },
+  {
+    "description": "MONTHS_BETWEEN → DATEDIFF(month, ...)",
+    "pattern": "\\bMONTHS_BETWEEN\\(([^,]+),\\s*([^\\)]+)\\)",
+    "replacement": "DATEDIFF(month, \\2, \\1)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 23,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "두 날짜 간 월 차이 계산",
+    "example_as_is": "SELECT MONTHS_BETWEEN('2024-04-01', '2024-01-01') FROM DUAL;",
+    "example_to_be": "SELECT DATEDIFF(month, '2024-01-01', '2024-04-01') FROM DUAL;",
+    "usage_context": "월 단위 차이 계산"
+  },
+  {
+    "description": "TRUNC(date, 'MM') → DATE_TRUNC('month', date)",
+    "pattern": "TRUNC\\(([^,]+),\\s*'MM'\\)",
+    "replacement": "DATE_TRUNC('month', \\1)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 24,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "날짜에서 월 단위를 추출하는 함수 변환",
+    "example_as_is": "SELECT TRUNC(order_date, 'MM') FROM orders;",
+    "example_to_be": "SELECT DATE_TRUNC('month', order_date) FROM orders;",
+    "usage_context": "월 단위로 날짜 자를 때 사용"
+  },
+  {
+    "description": "TRUNC(date) → DATE_TRUNC('day', date)",
+    "pattern": "TRUNC\\(([^(),]+)\\)",
+    "replacement": "DATE_TRUNC('day', \\1)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 25,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "날짜에서 일 단위를 추출하는 함수 변환",
+    "example_as_is": "SELECT TRUNC(order_date) FROM orders;",
+    "example_to_be": "SELECT DATE_TRUNC('day', order_date) FROM orders;",
+    "usage_context": "일 단위로 날짜 자를 때 사용"
+  },
+  {
+    "description": "NVL → COALESCE",
+    "pattern": "\\bNVL\\(",
+    "replacement": "COALESCE(",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 26,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "NULL 처리 함수 NVL을 COALESCE로 변환",
+    "example_as_is": "SELECT NVL(salary, 0) FROM employees;",
+    "example_to_be": "SELECT COALESCE(salary, 0) FROM employees;",
+    "usage_context": "NULL 값을 대체할 때 사용"
+  },
+  {
+    "description": "SUBSTR → SUBSTRING",
+    "pattern": "\\bSUBSTR\\(",
+    "replacement": "SUBSTRING(",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 27,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "부분 문자열 추출 함수 변환",
+    "example_as_is": "SELECT SUBSTR(name, 1, 3) FROM users;",
+    "example_to_be": "SELECT SUBSTRING(name, 1, 3) FROM users;",
+    "usage_context": "부분 문자열 추출 시 사용"
+  },
+  {
+    "description": "INSTR → POSITION",
+    "pattern": "\\bINSTR\\(([^,]+),\\s*([^\\)]+)\\)",
+    "replacement": "POSITION(\\2 IN \\1)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 28,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "문자 위치 찾기 함수 변환",
+    "example_as_is": "SELECT INSTR('hello world', 'o') FROM dual;",
+    "example_to_be": "SELECT POSITION('o' IN 'hello world') FROM dual;",
+    "usage_context": "특정 문자의 위치를 찾을 때"
+  },
+  {
+    "description": "CEIL → CEILING",
+    "pattern": "\\bCEIL\\(",
+    "replacement": "CEILING(",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 29,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "올림 함수 변환",
+    "example_as_is": "SELECT CEIL(3.1) FROM dual;",
+    "example_to_be": "SELECT CEILING(3.1) FROM dual;",
+    "usage_context": "소수점 올림"
+  },
+  {
+    "description": "CASE 사용 중 중첩 구조 → 유지 가능",
+    "pattern": "\\bCASE\\b",
+    "replacement": "CASE",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 30,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "CASE 구문은 Redshift에서도 동일 사용 가능",
+    "example_as_is": "CASE WHEN score >= 90 THEN 'A' ELSE 'B' END",
+    "example_to_be": "CASE WHEN score >= 90 THEN 'A' ELSE 'B' END",
+    "usage_context": "조건문 처리 시"
+  },
+  {
+    "description": "WITH clause (서브쿼리 팩터링) → WITH (동일)",
+    "pattern": "\\bWITH\\s+\\w+\\s+AS\\s*\\(",
+    "replacement": "WITH \\g<0>",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 31,
+    "applicable_to": [
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "Redshift에서도 WITH 구문 사용 가능",
+    "example_as_is": "WITH dept_avg AS (SELECT deptno, AVG(sal) FROM emp GROUP BY deptno)",
+    "example_to_be": "WITH dept_avg AS (SELECT deptno, AVG(sal) FROM emp GROUP BY deptno)",
+    "usage_context": "공통 서브쿼리 재사용"
+  },
+  {
+    "description": "Oracle TABLESPACE 제거",
+    "pattern": "TABLESPACE\\s+\\w+",
+    "replacement": "",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 32,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "DDL에서 불필요한 TABLESPACE 정보를 제거",
+    "example_as_is": "CREATE TABLE emp (id INT) TABLESPACE users;",
+    "example_to_be": "CREATE TABLE emp (id INT);",
+    "usage_context": "TABLESPACE 옵션은 Redshift에서 필요 없음"
+  },
+  {
+    "description": "Oracle STORAGE 절 제거",
+    "pattern": "STORAGE\\s*\\(.*?\\)",
+    "replacement": "",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 33,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "DDL에서 STORAGE 옵션 제거",
+    "example_as_is": "CREATE TABLE emp (id INT) STORAGE (INITIAL 64K NEXT 64K);",
+    "example_to_be": "CREATE TABLE emp (id INT);",
+    "usage_context": "Redshift에서 STORAGE 옵션은 무의미"
+  },
+  {
+    "description": "Oracle PCTFREE 절 제거",
+    "pattern": "PCTFREE\\s+\\d+",
+    "replacement": "",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 34,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "DDL에서 PCTFREE 옵션 제거",
+    "example_as_is": "CREATE TABLE emp (id INT) PCTFREE 10;",
+    "example_to_be": "CREATE TABLE emp (id INT);",
+    "usage_context": "블록 공간 예약(PCTFREE)은 Redshift에 해당 없음"
+  },
+  {
+    "description": "Oracle INITRANS 절 제거",
+    "pattern": "INITRANS\\s+\\d+",
+    "replacement": "",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 35,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "DDL에서 INITRANS 옵션 제거",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "Oracle MAXTRANS 절 제거",
+    "pattern": "MAXTRANS\\s+\\d+",
+    "replacement": "",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 36,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "DDL에서 MAXTRANS 옵션 제거",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "NUMBER(1,0) → SMALLINT",
+    "pattern": "\\bNUMBER\\((1),\\s*0\\)",
+    "replacement": "SMALLINT",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 37,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "간단한 숫자 타입 변환",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "NUMBER(p,0) where 2 ≤ p ≤ 9 → INTEGER",
+    "pattern": "\\bNUMBER\\(([2-9]),\\s*0\\)",
+    "replacement": "INTEGER",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 38,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "숫자 타입 변환: 범위 2-9",
+    "example_as_is": "age NUMBER(5,0)",
+    "example_to_be": "age INTEGER",
+    "usage_context": "정수 (2~9자리) 저장 시"
+  },
+  {
+    "description": "NUMBER(p,0) where 10 ≤ p ≤ 18 → BIGINT",
+    "pattern": "\\bNUMBER\\((1[0-8]),\\s*0\\)",
+    "replacement": "BIGINT",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 39,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "숫자 타입 변환: 범위 10-18",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  },
+  {
+    "description": "NUMBER(p,s) → DECIMAL",
+    "pattern": "\\bNUMBER\\((\\d+),\\s*(?!0\\b)(\\d+)\\)",
+    "replacement": "DECIMAL(\\1,\\2)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 40,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "소수점 숫자 타입 변환",
+    "example_as_is": "price NUMBER(10,2)",
+    "example_to_be": "price DECIMAL(10,2)",
+    "usage_context": "소수 포함 숫자 저장 시"
+  },
+  {
+    "description": "VARCHAR2 → VARCHAR",
+    "pattern": "\\bVARCHAR2\\((\\d+)\\)",
+    "replacement": "VARCHAR(\\1)",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 41,
+    "applicable_to": [
+      "DDL"
+    ],
+    "criticality": "low",
+    "notes": "문자열 타입 변환",
+    "example_as_is": "name VARCHAR2(100)",
+    "example_to_be": "name VARCHAR(100)",
+    "usage_context": "문자열 컬럼 정의 시 사용"
+  },
+  {
+    "description": "Oracle Hint 제거",
+    "pattern": "\\/\\*\\+.*?\\*\\/",
+    "replacement": "",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 42,
+    "applicable_to": [
+      "DDL",
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "Oracle Hint 제거, 불필요한 힌트를 모두 제거",
+    "example_as_is": "SELECT /*+ FULL(emp) */ * FROM emp;",
+    "example_to_be": "SELECT * FROM emp;",
+    "usage_context": "Oracle 힌트 제거 (Redshift 미지원)"
+  },
+  {
+    "description": "SYSDATE → CURRENT_TIMESTAMP",
+    "pattern": "\\bSYSDATE\\b",
+    "replacement": "CURRENT_TIMESTAMP",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 43,
+    "applicable_to": [
+      "DDL",
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "Oracle SYSDATE를 CURRENT_TIMESTAMP로 변환",
+    "example_as_is": "SELECT SYSDATE FROM DUAL;",
+    "example_to_be": "SELECT CURRENT_TIMESTAMP FROM DUAL;",
+    "usage_context": "현재 날짜/시간 조회 시 사용"
+  },
+  {
+    "description": "SYSTIMESTAMP → CURRENT_TIMESTAMP",
+    "pattern": "\\bSYSTIMESTAMP\\b",
+    "replacement": "CURRENT_TIMESTAMP",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 44,
+    "applicable_to": [
+      "DDL",
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "Oracle SYSTIMESTAMP를 CURRENT_TIMESTAMP로 변환",
+    "example_as_is": "SELECT SYSTIMESTAMP FROM DUAL;",
+    "example_to_be": "SELECT CURRENT_TIMESTAMP FROM DUAL;",
+    "usage_context": "정확한 시간 정보 조회 시 사용"
+  },
+  {
+    "description": "DATE → TIMESTAMP (단어 단위)",
+    "pattern": "(?<!\\w)DATE(?!\\w)",
+    "replacement": "TIMESTAMP",
+    "manual_review_required": false,
+    "manual_reason": "",
+    "priority": 45,
+    "applicable_to": [
+      "DDL",
+      "DML"
+    ],
+    "criticality": "low",
+    "notes": "DATE 타입을 TIMESTAMP로 변환",
+    "example_as_is": "",
+    "example_to_be": "",
+    "usage_context": ""
+  }
+]
